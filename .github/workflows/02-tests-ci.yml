@@ -20,10 +20,31 @@ jobs:
       - name: "Checkout do código"
         uses: actions/checkout@v4
 
-      # INSIRA AQUI A LÓGICA PARA RODAR OS TESTES E VERIFICAR A COBERTURA
-      ###
-      ###
-      ###
+      - name: "Instalar Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: "Instalar dependências"
+        run: npm install
+
+      - name: "Executar testes com cobertura e validar COVERAGE_MIN"
+        id: run-tests
+        run: |
+          # Rodar testes com NYC para gerar o relatório
+          npx nyc --reporter=text-summary npm test
+
+          # Extrair cobertura (Statements)
+          COVERAGE=$(npx nyc report --reporter=text-summary | grep -oP 'Statements\s*:\s*\K[0-9\.]+(?=%)' | head -1)
+          echo "Cobertura encontrada: $COVERAGE%"
+
+          # Validar cobertura mínima
+          if (( $(echo "$COVERAGE < $COVERAGE_MIN" | bc -l) )); then
+            echo "❌ Cobertura abaixo do mínimo exigido (${COVERAGE_MIN}%)"
+            exit 1
+          else
+            echo "✅ Cobertura mínima atingida (${COVERAGE_MIN}%)"
+          fi
 
       - name: "Extrair porcentagem de cobertura" # Esse step será validado pelo desafio, não altere o nome. No final, ele deve gerar o output "coverage" com a porcentagem de cobertura.
         id: coverage
